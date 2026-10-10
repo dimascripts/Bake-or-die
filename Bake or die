@@ -1,0 +1,322 @@
+-- Delta Full GUI for Bake or Die
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Удаление старого GUI при перезапуске
+if PlayerGui:FindFirstChild("BakeOrDieGui") then
+    PlayerGui.BakeOrDieGui:Destroy()
+end
+
+-- Создание ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BakeOrDieGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+---------------------------------------------------------
+-- 1. Компактная плавающая кнопка (Toggle Button)
+---------------------------------------------------------
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Size = UDim2.new(0, 45, 0, 45)
+ToggleButton.Position = UDim2.new(0.05, 0, 0.2, 0)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 20, 40)
+ToggleButton.Text = "🍞"
+ToggleButton.TextSize = 22
+ToggleButton.Active = true
+ToggleButton.Parent = ScreenGui
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 12)
+ToggleCorner.Parent = ToggleButton
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Color = Color3.fromRGB(255, 170, 0)
+ToggleStroke.Thickness = 2
+ToggleStroke.Parent = ToggleButton
+
+---------------------------------------------------------
+-- 2. Логика перетаскивания кнопки (Drag & Drop)
+---------------------------------------------------------
+local dragging = false
+local dragInput, dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    ToggleButton.Position = UDim2.new(
+        startPos.X.Scale, startPos.X.Offset + delta.X,
+        startPos.Y.Scale, startPos.Y.Offset + delta.Y
+    )
+end
+
+ToggleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = ToggleButton.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+ToggleButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+---------------------------------------------------------
+-- 3. Основное окно (Main Frame)
+---------------------------------------------------------
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 260, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -130, 0.5, -190)
+MainFrame.BackgroundColor3 = Color3.fromRGB(22, 18, 28)
+MainFrame.BackgroundTransparency = 0.15
+MainFrame.Visible = false
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 14)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(255, 170, 0)
+MainStroke.Thickness = 1.5
+MainStroke.Parent = MainFrame
+
+-- Заголовок
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -40, 0, 35)
+Title.Position = UDim2.new(0, 12, 0, 5)
+Title.Text = "Bake or Die Menu"
+Title.TextColor3 = Color3.fromRGB(255, 200, 100)
+Title.TextSize = 17
+Title.Font = Enum.Font.SourceSansBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
+Title.Parent = MainFrame
+
+-- Кнопка закрытия
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Position = UDim2.new(1, -32, 0, 10)
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+CloseBtn.TextSize = 15
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.BackgroundColor3 = Color3.fromRGB(45, 35, 50)
+CloseBtn.Parent = MainFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseBtn
+
+-- Контейнер для кнопок
+local Container = Instance.new("ScrollingFrame")
+Container.Size = UDim2.new(1, -20, 1, -50)
+Container.Position = UDim2.new(0, 10, 0, 42)
+Container.BackgroundTransparency = 1
+Container.ScrollBarThickness = 4
+Container.ScrollBarImageColor3 = Color3.fromRGB(255, 170, 0)
+Container.Parent = MainFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 8)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = Container
+
+---------------------------------------------------------
+-- 4. Функция создания кнопок
+---------------------------------------------------------
+local function AddToggle(text, callback)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(1, -6, 0, 36)
+    Btn.BackgroundColor3 = Color3.fromRGB(38, 30, 48)
+    Btn.Text = text
+    Btn.TextColor3 = Color3.fromRGB(240, 240, 240)
+    Btn.TextSize = 14
+    Btn.Font = Enum.Font.SourceSans
+    Btn.Parent = Container
+
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 8)
+    BtnCorner.Parent = Btn
+
+    local active = false
+    Btn.MouseButton1Click:Connect(function()
+        active = not active
+        if active then
+            Btn.BackgroundColor3 = Color3.fromRGB(80, 50, 110)
+            Btn.TextColor3 = Color3.fromRGB(255, 220, 130)
+        else
+            Btn.BackgroundColor3 = Color3.fromRGB(38, 30, 48)
+            Btn.TextColor3 = Color3.fromRGB(240, 240, 240)
+        end
+        callback(active)
+    end)
+end
+
+---------------------------------------------------------
+-- 5. Логика всех функций
+---------------------------------------------------------
+
+-- Подсчет наггетсов в инвентаре
+local function GetNuggetCount()
+    local count = 0
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    local character = LocalPlayer.Character
+    
+    if backpack then
+        for _, item in pairs(backpack:GetChildren()) do
+            if item.Name:lower():find("nugget") or item.Name:lower():find("наггетс") then
+                count = count + 1
+            end
+        end
+    end
+    if character then
+        for _, item in pairs(character:GetChildren()) do
+            if item:IsA("Tool") and (item.Name:lower():find("nugget") or item.Name:lower():find("наггетс")) then
+                count = count + 1
+            end
+        end
+    end
+    return count
+end
+
+-- 1. Выдача / Фарм наггетсов до 50 шт
+local nuggetFarmActive = false
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if nuggetFarmActive then
+            if GetNuggetCount() < 50 then
+                pcall(function()
+                    for _, obj in pairs(workspace:GetDescendants()) do
+                        if not nuggetFarmActive or GetNuggetCount() >= 50 then break end
+                        
+                        -- Активация интерактов наггетсов
+                        if obj:IsA("ProximityPrompt") and (obj.Parent.Name:lower():find("nugget") or obj.Parent.Name:lower():find("наггетс") or obj.ObjectText:lower():find("nugget")) then
+                            fireproximityprompt(obj)
+                            task.wait(0.05)
+                        end
+                    end
+                end)
+            end
+        end
+    end
+end)
+
+AddToggle("🍗 Выдать наггетсы (до 50 шт)", function(state)
+    nuggetFarmActive = state
+end)
+
+-- 2. Автофарм конфет
+local candyFarmActive = false
+task.spawn(function()
+    while true do
+        task.wait(0.3)
+        if candyFarmActive then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    for _, obj in pairs(workspace:GetDescendants()) do
+                        if not candyFarmActive then break end
+                        if obj.Name:lower():find("candy") or obj.Name:lower():find("конфет") or obj.Name:lower():find("coin") then
+                            local targetPart = obj:IsA("BasePart") and obj or (obj:IsA("Model") and obj.PrimaryPart)
+                            if targetPart then
+                                char.HumanoidRootPart.CFrame = targetPart.CFrame + Vector3.new(0, 2, 0)
+                                task.wait(0.1)
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+AddToggle("🍬 Автофарм конфет", function(state)
+    candyFarmActive = state
+end)
+
+-- 3. Ускорение бега
+AddToggle("⚡ Скорость x2", function(state)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = state and 32 or 16
+    end
+end)
+
+-- 4. Высокий прыжок
+AddToggle("🦘 Высокий прыжок", function(state)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.UseJumpPower = true
+        char.Humanoid.JumpPower = state and 100 or 50
+    end
+end)
+
+-- 5. Fullbright (Без темноты)
+local originalBrightness = Lighting.Brightness
+local originalClockTime = Lighting.ClockTime
+AddToggle("💡 Включить свет (Fullbright)", function(state)
+    if state then
+        Lighting.Brightness = 3
+        Lighting.ClockTime = 12
+        Lighting.GlobalShadows = false
+    else
+        Lighting.Brightness = originalBrightness
+        Lighting.ClockTime = originalClockTime
+        Lighting.GlobalShadows = true
+    end
+end)
+
+-- 6. Подсветка предметов (ESP)
+local highlights = {}
+AddToggle("👁️ Подсветка предметов (ESP)", function(state)
+    if state then
+        for _, item in pairs(workspace:GetDescendants()) do
+            if item:IsA("ProximityPrompt") and item.Parent and item.Parent:IsA("BasePart") then
+                local hl = Instance.new("Highlight")
+                hl.Adornee = item.Parent
+                hl.FillColor = Color3.fromRGB(255, 170, 0)
+                hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                hl.FillTransparency = 0.5
+                hl.Parent = item.Parent
+                table.insert(highlights, hl)
+            end
+        end
+    else
+        for _, hl in pairs(highlights) do
+            if hl then hl:Destroy() end
+        end
+        highlights = {}
+    end
+end)
+
+---------------------------------------------------------
+-- 6. Открытие и закрытие меню
+---------------------------------------------------------
+ToggleButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
